@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nuc.mapper.MarketMapper">
+    <resultMap id="rm" type="market">
+        <id property="market_id" column="market_id" javaType="String" jdbcType="VARCHAR"/>
+        <result property="market_name" column="market_name" javaType="String" jdbcType="VARCHAR"/>
+        <result property="market_address" column="market_address" javaType="String" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!--增删改查-->
+    <insert id="insertMarket" parameterType="market">
+        <selectKey order="BEFORE" keyProperty="market_id" resultType="String">
+            select replace(uuid(),"-","")  as market_id from dual
+        </selectKey>
+        insert into market(market_id,market_name,market_address) values(#{market_id},#{market_name},#{market_address})
+    </insert>
+    <delete id="deleteMarket" parameterType="String">
+        delete from market where market_id=#{market_id}
+    </delete>
+    <update id="updateMarket" parameterType="market">
+        update market set market_name=#{market_name},market_address=#{market_address} where market_id=#{market_id}
+    </update>
+    <select id="selectMarket" resultMap="rm">
+        select * from market
+    </select>
+
+    <select id="selectByNameList" resultMap="rm">
+        select * from market where market_name like '%${name}%'
+    </select>
+    <select id="selectByNameMap" resultMap="rm">
+        select * from market where market_name like '%${name}%'
+    </select>
+
+    <select id="selectByNameAdd" resultMap="rm">
+        select * from market where market_name like '%${name}%' and market_address like '%${market_address}%'
+    </select>
+
+    <select id="selectById" resultMap="rm">
+        select * from market where market_id=#{market_id}
+    </select>
+
+
+    <!--一对多的集合映射嵌套查询,一个超市对应多个顾客-->
+    <resultMap id="rm2" type="market">
+        <id property="market_id" column="market_id" />
+        <result property="market_name" column="market_name" />
+        <result property="market_address" column="market_address"/>
+
+        <collection property="customer" column="market_id" ofType="customer">
+            <id property="cus_id" column="cus_id"/>
+            <result property="cus_name" column="cus_name" />
+            <result property="cus_code" column="cus_code" />
+            <result property="cus_address" column="cus_address"/>
+            <result property="cus_tel" column="cus_tel"/>
+            <result property="cus_age" column="cus_age"/>
+        </collection>
+    </resultMap>
+    <select id="getCustomerByMarketId" parameterType="String" resultMap="rm2">
+        select * from market m,customer c where c.market_id=m.market_id and m.market_id = #{market_id}
+    </select>
+
+    <!--一对多的集合映射分步查询-->
+    <resultMap id="rm3" type="market">
+        <id property="market_id" column="market_id" />
+        <result property="market_name" column="market_name" />
+        <result property="market_address" column="market_address"/>
+        <collection property="customer" column="market_id" ofType="customer"
+                    select="com.nuc.mapper.CustomerMapper.selectByMarketId">
+                    <!--collection中的属性，fetchType="eager/lazy" 可以选择是否开启懒加载-->
+        </collection>
+    </resultMap>
+    <select id="selectAllCusById" resultMap="rm3">
+        select * from market where market_id = #{market_id}
+    </select>
+</mapper>

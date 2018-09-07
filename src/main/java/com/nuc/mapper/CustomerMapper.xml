@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nuc.mapper.CustomerMapper">
+    <!--开启二级缓存-->
+    <cache/>
+    <!--sql是存放高度大量重复的sql语句,具体使用sql的地方通过include来引入-->
+    <sql id="sql">customer</sql>
+    <sql id="sqlColum">cus_name,cus_code</sql>
+
+    <resultMap id="rm" type="customer">
+        <id property="cus_id" column="cus_id" javaType="String" jdbcType="INTEGER" />
+        <result property="cus_name" column="cus_name" javaType="String" jdbcType="VARCHAR"/>
+        <result property="cus_code" column="cus_code" javaType="String" jdbcType="VARCHAR"/>
+        <result property="cus_address" column="cus_address"/>
+        <result property="cus_tel" column="cus_tel"/>
+        <result property="cus_age" column="cus_age"/>
+    </resultMap>
+
+    <!--<insert id="insertCus" parameterType="customer" useGeneratedKeys="true" keyProperty="cus_id">-->
+        <!--insert into <include refid="sql"/>(<include refid="sqlColum" />) values(#{cus_name},#{cus_code})-->
+    <!--</insert>-->
+    <insert id="insertCus"  parameterType="customer">
+        <selectKey order="BEFORE" keyProperty="cus_id" resultType="String">
+            <!-- 获取uuid()作为主键 -->
+            select replace(uuid(),"-","")  as customerId from dual
+        </selectKey>
+        insert into <include refid="sql"/>(cus_id,<include refid="sqlColum" />) values(#{cus_id},#{cus_name},#{cus_code})
+    </insert>
+    <select id="selectCus" resultMap="rm">
+        select * from customer
+    </select>
+    <select id="selectCusOne" parameterType="String" resultMap="rm">
+        select * from customer WHERE cus_id=#{cus_id};
+    </select>
+    <update id="updateCus" parameterType="customer">
+        update customer set cus_name=#{cus_name},cus_code=#{cus_code} where cus_id=#{cus_id}
+    </update>
+    <delete id="deleteCus" parameterType="String">
+        delete from customer where cus_id=#{cus_id}
+    </delete>
+
+    <!--
+        第一种多参传递，用0,1...代替
+        3,4.4版本以后用arg0,arg1...代替
+    -->
+    <select id="selectByCon" resultMap="rm">
+        select * from <include refid="sql"/> where cus_name=#{0} and cus_code=#{1}
+    </select>
+
+    <!-- 第二种多参传递：在接口层用@Parm表示传递参数，xml中直接取参数名 -->
+    <select id="selectByCon2" resultMap="rm">
+        select * from <include refid="sql"/> where cus_name=#{name} and cus_code=#{code}
+    </select>
+
+    <!-- 第三种多参传递:通过map封装，取map中key值为参数名 -->
+    <select id="selectByCon3" resultMap="rm">
+        select * from <include refid="sql"/> where cus_name=#{name} and cus_code=#{code}
+    </select>
+
+    <!--模糊查询-->
+    <select id="selectByName" resultMap="rm">
+        <!--select * from <include refid="sql"/> where cus_name=#{name}-->
+        <!--第一种：使用concat来连接-->
+        <!--select * from <include refid="sql"/> where cus_name like concat('%',#{name},'%')-->
+        <!--第二种:使用${}来传，mapper中p配置Param-->
+        <!--select * from <include refid="sql"/> where cus_name like '%${name}%'-->
+        <!--第三种：测试类中传递字符串加%%-->
+        select * from <include refid="sql"/> where cus_name like '${name}'
+    </select>
+
+    <!--一对一查询，这里是一个顾客对应一个超市-->
+    <resultMap id="rm2" type="customer">
+        <id property="cus_id" column="cus_id" javaType="String" jdbcType="INTEGER" />
+        <result property="cus_name" column="cus_name" javaType="String" jdbcType="VARCHAR"/>
+        <result property="cus_code" column="cus_code" javaType="String" jdbcType="VARCHAR"/>
+        <result property="cus_address" column="cus_address"/>
+        <result property="cus_tel" column="cus_tel"/>
+        <result property="cus_age" column="cus_age"/>
+        <!--association property，这个属性放的是customer实体的属性，javaype对应的这个属性的实体-->
+        <association property="market" javaType="com.nuc.entity.Market">
+            <id property="market_id" column="market_id" javaType="String" jdbcType="VARCHAR"/>
+            <result property="market_name" column="market_name" javaType="String" jdbcType="VARCHAR"/>
+            <result property="market_address" column="market_address" javaType="String" jdbcType="VARCHAR"/>
+        </association>
+    </resultMap>
+
+    <select id="selectCusMarByCusId" parameterType="String" resultMap="rm2">
+        select c.*,m.market_id,m.market_name,m.market_address from
+        customer c,market m
+        where
+        c.market_id=m.market_id
+         and
+        cus_id=#{cus_id}
+    </select>
+
+    <!--一对一分步查询
+        在mybatis配置文件中开启懒加载和延迟加载
+    -->
+    <resultMap id="rm3" type="customer">
+        <id property="cus_id" column="cus_id" javaType="String" jdbcType="INTEGER" />
+        <result property="cus_name" column="cus_name" javaType="String" jdbcType="VARCHAR"/>
+        <result property="cus_code" column="cus_code" javaType="String" jdbcType="VARCHAR"/>
+        <result property="cus_address" column="cus_address"/>
+        <result property="cus_tel" column="cus_tel"/>
+        <result property="cus_age" column="cus_age"/>
+        <!--association property，这个属性放的是customer实体的属性，javaype对应的这个属性的实体-->
+        <association property="market" javaType="com.nuc.entity.Market" column="market_id"
+                     select="com.nuc.mapper.MarketMapper.selectById">
+        </association>
+    </resultMap>
+    <select id="selectById" resultMap="rm3" parameterType="String">
+        select * from customer where cus_id=#{cus_id}
+    </select>
+
+    <select id="selectByMarketId" resultMap="rm">
+        select * from customer where market_id = #{market_id}
+    </select>
+</mapper>

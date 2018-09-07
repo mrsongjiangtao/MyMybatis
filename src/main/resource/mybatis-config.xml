@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <!-- 引入外部文件
+		resource:引入项目中配置文件
+		url:引入网络中或者路径文件
+	-->
+    <properties resource="jdbc.properties"/>
+    <settings>
+        <!--<setting name="mapUnderscoreToCamelCase" value="true" />-->
+        <setting name="lazyLoadingEnabled" value="true" />
+        <setting name="aggressiveLazyLoading"  value="false" />
+        <setting name="cacheEnabled" value="true"/>
+    </settings>
+    <typeAliases>
+        <package name="com.nuc.entity"></package>
+    </typeAliases>
+    <!-- - - - - - - 数据库环境配置- - - - - - - - - -->
+    <environments default="environments">
+        <environment id="environments">
+            <transactionManager type="JDBC"/>
+            <dataSource type="POOLED">
+                <property name="driver" value="${jdbc.driverClass}"/>
+                <property name="url" value="${jdbc.jdbcUrl}"/>
+                <property name="username" value="${jdbc.user}"/>
+                <property name="password" value="${jdbc.password}"/>
+            </dataSource>
+        </environment>
+    </environments>
+    <!-- - - - - - - -映射文件路径- - - - - - -->
+    <mappers>
+        <!--自动扫描包下的映射文件，要求：同名，同目录-->
+        <package name="com.nuc.mapper" />
+    </mappers>
+</configuration>
+

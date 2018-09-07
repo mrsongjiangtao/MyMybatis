@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nuc.mapper.SearchCustomerMapper">
+    <resultMap id="rm" type="customer">
+        <id property="cus_id" column="cus_id" />
+        <result property="cus_name" column="cus_name" />
+        <result property="cus_code" column="cus_code" />
+        <result property="cus_address" column="cus_address"/>
+        <result property="cus_tel" column="cus_tel"/>
+        <result property="cus_age" column="cus_age"/>
+        <association property="market" javaType="market" >
+            <id property="market_id" column="market_id" javaType="String" jdbcType="VARCHAR"/>
+            <result property="market_name" column="market_name" javaType="String" jdbcType="VARCHAR"/>
+            <result property="market_address" column="market_address" javaType="String" jdbcType="VARCHAR"/>
+        </association>
+    </resultMap>
+    <select id="selectByCondition" resultType="com.nuc.entity.Customer">
+        select * from customer
+        <where>
+            <if test="cus_code!=null and cus_code!=''">
+                and cus_code like concat('%',#{cus_code},'%')
+            </if>
+            <if test="cus_address!=null and cus_address!=''">
+                and cus_address like concat('%',#{cus_address},'%')
+            </if>
+            <if test="cus_tel!=null and cus_tel!=''">
+                and cus_tel like concat('%',#{cus_tel},'%')
+            </if>
+            <if test="cus_age!=null and cus_age>=0">
+                and cus_age>#{cus_age}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectByConditionTrim" resultType="com.nuc.entity.Customer">
+        select * from customer
+        <!-- prefix:前缀，想要在前面拼接的字符串内容
+		 		prefixOverrides：前缀覆盖，去掉条件内第一个多余的字符串
+		 		suffix：后缀，想在要后面添加字符串
+		 		suffixOverrides：后缀覆盖：去掉后面多余的字符串-->
+        <trim prefix="where" prefixOverrides="and">
+            <if test="cus_code!=null and cus_code!=''">
+                and cus_code like concat('%',#{cus_code},'%')
+            </if>
+            <if test="cus_address!=null and cus_address!=''">
+                and cus_address like concat('%',#{cus_address},'%')
+            </if>
+            <if test="cus_tel!=null and cus_tel!=''">
+                and cus_tel like concat('%',#{cus_tel},'%')
+            </if>
+            <if test="cus_age!=null and cus_age>=0">
+                and cus_age>#{cus_age}
+            </if>
+        </trim>
+    </select>
+
+    <select id="selectByConditionChose" resultType="com.nuc.entity.Customer">
+        select * from customer
+        <where>
+            <choose>
+                <when test="cus_code!=null and cus_code.trim()!=''">
+                    cus_code like concat('%',#{cus_code},'%')
+                </when>
+                <when test="cus_address!=null and cus_address.trim()!=''">
+                    cus_address like concat('%',#{cus_address},'%')
+                </when>
+                <otherwise>
+                    cus_age>18
+                </otherwise>
+            </choose>
+        </where>
+    </select>
+
+    <update id="updateCustomer" >
+        update customer
+            <!-- set标签可以去除拼接后字符串后面多余的逗号 -->
+        <set>
+            <if test="cus_name!=null and cus_name.trim()!='' ">
+                cus_name=#{cus_name},
+            </if>
+            <if test="cus_code!=null and cus_code.trim()!=''">
+                cus_code = #{cus_code},
+            </if>
+            <if test="cus_address!=null and cus_address.trim()!=''">
+                cus_address=#{cus_address},
+            </if>
+            <if test="cus_tel!=null and cus_tel!=''">
+                cus_tel = #{cus_tel},
+            </if>
+            <if test="cus_age!=null and cus_age>=0">
+                cus_age = #{cus_age},
+            </if>
+        </set>
+        where cus_id=#{cus_id}
+    </update>
+
+    <!--单条件多值查询,例如，查询北京，太原的顾客信息-->
+    <!--
+        foreach:
+            item表示集合中每一个元素进行迭代时的别名，
+            index指 定一个名字，用于表示在迭代过程中，每次迭代到的位置，
+            open表示该语句以什么开始，
+            separator表示在每次进行迭代之间以什么符号作为分隔 符，
+            close表示以什么结束。
+            collection:三种情况
+                    1. 如果传入的是单参数且参数类型是一个List的时候，collection属性值为必须是list，不是你list的名字，就是list
+                    2. 如果传入的是单参数且参数类型是一个array数组的时候，collection的属性值为array，不是你数组的名字，就是array
+                    3. 如果传入的参数是多个的时候，或者是以一个对象为参数，collection的属性值就要取你自己定义的名字了，不管是list类型还是array类型
+    -->
+    <select id="selectByConditionAll" resultMap="rm">
+        select * from customer
+        <foreach collection="address" item="address" separator="," open="where cus_address in (" close=")">
+            #{address}
+        </foreach>
+    </select>
+
+    <!--批量添加-->
+    <insert id="insertMore" >
+        <!--<selectKey order="BEFORE" keyProperty="cus_id" resultType="String">-->
+            <!--select replace(uuid(),"-","")  as cus_id from dual-->
+        <!--</selectKey>-->
+        <!--<selectKey order="BEFORE" keyProperty="market_id" resultType="String">-->
+            <!--select replace(uuid(),"-","")  as market_id from dual-->
+        <!--</selectKey>-->
+        insert into customer(cus_id,cus_name,cus_code,market_id,cus_address,cus_tel,cus_age) values
+        <foreach collection="customers" item="c" separator=",">
+            (#{c.cus_id},
+            #{c.cus_name},
+            #{c.cus_code},
+            #{c.market.market_id},
+            #{c.cus_address},
+            #{c.cus_tel},
+            #{c.cus_age}
+            )
+        </foreach>
+    </insert>
+
+    <!--批量删除-->
+    <delete id="deleteMore">
+        delete from customer
+        <foreach collection="cus_id" separator="," item="cus_id" open="where cus_id in(" close=")">
+            <if test="cus_id!=null and cus_id.trim()!=''">
+                #{cus_id}
+            </if>
+        </foreach>
+    </delete>
+
+    <!--批量修改-->
+    <update id="updateMore">
+        <foreach collection="customers" item="c" separator=";">
+            update customer
+            <set>
+                <if test="c.cus_name!=null and c.cus_name.trim()!=null">
+                    cus_name = #{c.cus_name},
+                </if>
+                <if test="c.cus_code!=null and c.cus_code.trim()!=null">
+                    cus_code = #{c.cus_code},
+                </if>
+                <if test="c.cus_address!=null and c.cus_address.trim()!=null">
+                    cus_address = #{c.cus_address},
+                </if>
+                <if test="c.cus_tel!=null and c.cus_tel.trim()!=null">
+                    cus_tel = #{c.cus_tel},
+                </if>
+                <if test="c.cus_age>=0">
+                    cus_age = #{c.cus_age},
+                </if>
+            </set>
+            where cus_id = #{c.cus_id}
+        </foreach>
+    </update>
+</mapper>
